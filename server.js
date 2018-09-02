@@ -155,10 +155,11 @@ app.post('/display-book', (req, res) => {
 
 //search book
 app.post('/search-book', (req, res) => {
-    const {search } = req.body;
-    db.select('id_book').from('story').where('title', '=', search)
-    .orderBy(['views', 'likes'], 'desc')
-    .then(data => console.log(data))
+    db.select(['id_book','title']).from('story').orderBy(['views', 'likes'], 'desc')
+    .then(data => {
+        res.json(data)
+    })
+    .catch( err => res.json('cant get book'))
 })
 
 //insert book to library
@@ -322,7 +323,7 @@ app.post('/view-chapter', (req, res) => {
 })
 
 //delete chapter
-app.post('/delete-chapter', (req, res) => {
+app.delete('/delete-chapter', (req, res) => {
     const {id_book, id_chapter} = req.body;
     db('chapter').where({id_chapter: id_chapter}).del()
     .then( chapter => {
@@ -411,7 +412,7 @@ app.post('/profile', (req, res) => {
 })
 
 //my books
-agithubpp.post('/my-books', (req, res) => {
+app.post('/my-books', (req, res) => {
     const { id } = req.body;
     db.select('id_book').from('story').where('id_user', '=', id)
     .then( idBooks => {
@@ -437,7 +438,7 @@ app.delete('/delete-book', (req, res) => {
 
 //update book
 app.post('/update-book', (req, res) => {
-    const {id_book, id} = req.body;
+    const {id} = req.body;
     db.select('id_book').from('story').whereNot({id_book: id_book}).where({id_user: id})
     .then( idBooks => {
         const idBook = idBooks.map( (idBook, i) => {
@@ -453,13 +454,11 @@ app.post('/update-book', (req, res) => {
 //my library
 app.post('/my-library', (req, res) => {
     const { id } = req.body;
-    console.log(id)
     db.select('library').from('users').where('id', '=', id)
     .then( library => {
         library.map( (idBook, i) => {
-            console.log(idBook.library)
-        } )
-        
+            res.json(idBook.library)
+        })  
     })
     .catch( err => res.json("cant get id books"))
 })
@@ -491,10 +490,21 @@ app.put('/edit-profile', (req, res) => {
 
 //display book
 app.post( '/get-book-data', (req, res) => {
-    const { id, id_book} = req.body;
+    const { id, id_book} = req.body
     db.select(['title', 'description', 'mature', 'cover']).from('story').where('id_book', '=', id_book)
     .then( data => {
-        res.json(data[0])
+        db.select('name').from('users').where('id', '=', id)
+        .then( name => {
+            const author = name[0].name;
+            res.json({
+                author: author,
+                title: data[0].title,
+                description: data[0].description,
+                mature: data[0].mature,
+                cover: data[0].cover
+            })
+        })
+        
     })
     .catch( err => res.json("cant get book data "))
 })
@@ -574,6 +584,9 @@ app.post( '/total-chapter', (req,res) => {
     })
     .catch( err => res.json('cant get total chapter'))
 })
+
+
+
 
 app.listen('3001', () => {
     console.log('app is running on port 3001')
